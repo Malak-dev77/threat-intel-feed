@@ -34,9 +34,19 @@ from ghost_model.ghost_model import run_ghost_check
 from honeytoken.honeytoken import run_honeytoken_check
 from otx.otx_check import run_otx_check
 from grading.grading import grade_flow, aggregate_device_trust, update_reliability_grade, handle_idle_device, device_state
-from grading.dashboard_api import (
-    app, update_predictions, update_trust_scores, queue_alert
-)
+from grading import dashboard_api
+from grading.dashboard_api import app
+
+def update_predictions(flows):
+    dashboard_api.state["predictions"] = flows
+
+def update_trust_scores(aggregated_scores):
+    dashboard_api.state["trust_scores"] = aggregated_scores
+
+def queue_alert(device_ip, alert_type, severity=None, action_taken="isolate",
+                context=None, credibility_tier=None):
+    dashboard_api.queue_alert(device_ip, alert_type, severity, 
+                              action_taken, context, credibility_tier)
 
 def process_flow(flow):
     """
@@ -225,6 +235,7 @@ def pipeline_loop():
 
         # Update /trust_scores endpoint
         update_trust_scores(aggregated)
+        print(f"[Debug] Trust scores updated: {list(aggregated.keys())}")
 
         print(f"\n[Pipeline] Cycle {cycle} complete | "
               f"Flows: {len(flows)} | "

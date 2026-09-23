@@ -62,7 +62,8 @@ model_state = {
     "prediction_window": deque(maxlen=RELIABILITY_WINDOW),
     "flagged_count": 0,
     "clean_streak": 0,
-    "last_probability_dist": None  # for PSI drift calculation
+    "last_probability_dist": None,
+    "locked": True  # temporary — remove when real data arrives
 }
 
 # ─── Device trust state ───────────────────────────────────────────────────────
@@ -143,6 +144,9 @@ def update_reliability_grade(flagged_this_batch, current_probs):
     Degrades on: high flagged rate, PSI drift.
     Recovers on: sustained clean windows.
     """
+    if model_state.get("locked"):
+        return model_state["grade"], 0.0, 0.0
+    
     current_grade = model_state["grade"]
     current_index = GRADE_ORDER.index(current_grade)
 

@@ -13,7 +13,7 @@ FRAGILE_SHAP_THRESHOLD = 0.30   # >30% fragile feature contribution = flag
 # Reliability Window
 RELIABILITY_WINDOW = 500        # rolling predictions per model grade
 PSI_DRIFT_THRESHOLD = 0.20      # industry standard cutoff
-FLAGGED_RATE_THRESHOLD = 0.10   # roughest guess — validate in calibration
+FLAGGED_RATE_THRESHOLD = 0.60   # roughest guess — validate in calibration
 
 # Trust Score Bands
 TRUST_TRUSTED = 0.80            # >= this → trusted (green)
