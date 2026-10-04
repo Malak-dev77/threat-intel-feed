@@ -43,3 +43,30 @@ except Exception:
 load_dotenv()
 OTX_API_KEY="41254caac15e75ae68f8d0d7714f436bfbcb37880709e44353914970d881bab6"
 OTX_API_KEY = os.getenv("OTX_API_KEY", "41254caac15e75ae68f8d0d7714f436bfbcb37880709e44353914970d881bab6")
+
+
+# ─── AI Team Model ────────────────────────────────────────────────────────────
+MODEL_PATH = "ai_team_data/best_model_xgb.pkl"
+
+# Exact 7 features the XGBoost model uses — confirmed from model inspection
+MODEL_FEATURES = [
+    "src_port", "dst_port", "ip_proto",
+    "flow_duration", "total_pkts", "packet_rate", "avg_packet_size"
+]
+
+# Fragile vs robust split for real model features
+# Fragile = fakeable in one crafted packet
+FRAGILE_FEATURES_REAL = {"src_port", "dst_port"}
+
+# Robust = require sustained behavior to fake
+ROBUST_FEATURES_REAL = {"flow_duration", "total_pkts", "packet_rate", "avg_packet_size"}
+
+# ip_proto is partially fakeable — included in fragile for conservative detection
+FRAGILE_FEATURES_REAL.add("ip_proto")
+
+# Recalibrated threshold — 2 fragile out of 7 features = 28.6% baseline
+# Setting at 40% to avoid flagging natural fragile ratio
+FRAGILE_SHAP_THRESHOLD_REAL = 0.40
+
+# AI Team model classes
+MODEL_CLASSES = {0: "normal", 1: "malicious_post", 2: "syn_flood", 3: "port_scan"}
