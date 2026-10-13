@@ -36,6 +36,7 @@ from otx.otx_check import run_otx_check
 from grading.grading import grade_flow, aggregate_device_trust, update_reliability_grade, handle_idle_device, device_state
 from grading import dashboard_api
 from grading.dashboard_api import app
+from grading.verification_escalation import should_escalate, run_escalation
 
 def update_predictions(flows):
     dashboard_api.state["predictions"] = flows
@@ -128,7 +129,7 @@ def process_flow(flow):
             context={"pulse_count": otx_result["otx_pulse_count"]}
         )
 
-    # ── Step 8: Grade the flow ────────────────────────────────────────────────
+     # ── Step 8: Grade the flow ────────────────────────────────────────────
     grade_result = grade_flow(
         flow,
         shap_result=shap_result,
@@ -136,6 +137,34 @@ def process_flow(flow):
         honeytoken_result=honeytoken_result,
         otx_result=otx_result
     )
+
+    # ── Step 9: Escalation for uncertain flows ────────────────────────────
+    trust_score = grade_result["trust_score"]
+    ai_prediction = flow.get("prediction", "")
+
+    if should_escalate(trust_score, ai_prediction):
+        escalation_result = run_escalation(
+            flow, trust_score, ai_prediction,
+            otx_result=otx_result,
+            honeytoken_result=honeytoken_result
+        )
+        # Update trust score with escalation verdict
+        grade_result["trust_score"] = escalation_result["final_trust"]
+        grade_result["escalation"] = escalation_result
+
+        # Queue alert if quarantine pending
+        if escalation_result["verdict"] == "quarantine_pending":
+            queue_alert(
+                device_ip=flow.get("src_ip", "unknown"),
+                alert_type="verification_required",
+                action_taken="quarantine",
+                credibility_tier=grade_result["credibility_tier"],
+                context={
+                    "reason": escalation_result["reason"],
+                    "evidence": escalation_result["evidence_summary"],
+                    "requires_human_review": True
+                }
+            )
 
     return grade_result
 
@@ -235,7 +264,6 @@ def pipeline_loop():
 
         # Update /trust_scores endpoint
         update_trust_scores(aggregated)
-        print(f"[Debug] Trust scores updated: {list(aggregated.keys())}")
 
         print(f"\n[Pipeline] Cycle {cycle} complete | "
               f"Flows: {len(flows)} | "
