@@ -18,6 +18,7 @@ from ghost_model.ghost_model import run_ghost_check
 from grading.grading import grade_flow, model_state
 from collections import deque
 from config.settings import RELIABILITY_WINDOW
+from grading.verification_escalation import should_escalate, run_escalation
 
 CSV_PATH = "ai_team_data/batch_predictions_for_testing.csv"
 
@@ -165,8 +166,21 @@ def run_calibration(sample_size=500):
             )
 
         trust_score = grade_result["trust_score"]
+        ai_prediction = labeled["prediction"]
+
+        if should_escalate(trust_score, {"probability_malicious": flow["probability_malicious"]}):
+            escalation_result = run_escalation(
+                flow, trust_score, ai_prediction,
+                otx_result=None, honeytoken_result=None
+            )
+            trust_score = escalation_result["final_trust"]
+            grade_result["trust_score"] = trust_score
+            
+        trust_score = grade_result["trust_score"]
         results[prediction]["total"] += 1
         results[prediction]["scores"].append(trust_score)
+
+
 
         if shap_result["needs_deeper_inspection"]:
             results[prediction]["flagged_by_shap"] += 1
