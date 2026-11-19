@@ -40,9 +40,16 @@ except Exception:
         """No-op fallback for load_dotenv when python-dotenv is unavailable."""
         return
 
+import os
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(path=".env"):
+        return
+
 load_dotenv()
-OTX_API_KEY="41254caac15e75ae68f8d0d7714f436bfbcb37880709e44353914970d881bab6"
-OTX_API_KEY = os.getenv("OTX_API_KEY", "41254caac15e75ae68f8d0d7714f436bfbcb37880709e44353914970d881bab6")
+OTX_API_KEY = os.getenv("OTX_API_KEY", "")
 
 
 # ─── AI Team Model ────────────────────────────────────────────────────────────
